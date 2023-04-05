@@ -3,379 +3,230 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:timezone/data/latest.dart' as tz;
 
-import '../../helper/fcm_notification_helper.dart';
-import '../../helper/firestore_helper.dart';
-import '../../helper/local_notification_helper.dart';
-import '../../res/helpers/fcm_notification_helper.dart';
 import '../../res/helpers/firestore_helper.dart';
-import '../../res/helpers/local_notification_helper.dart';
+import '../../res/modals/globals.dart';
 
-class add_book extends StatefulWidget {
-  const add_book({Key? key}) : super(key: key);
+class Add_Book extends StatefulWidget {
+  const Add_Book({Key? key}) : super(key: key);
 
   @override
-  State<add_book> createState() => _add_bookState();
+  State<Add_Book> createState() => _Add_BookState();
 }
 
-class _add_bookState extends State<add_book> with WidgetsBindingObserver {
-  String? image;
-  File? imagefile2;
-  String pathImage = "";
-  String error1 = "";
-  final ImagePicker picker = ImagePicker();
-
-  TextEditingController namecontroller = TextEditingController();
-  TextEditingController authorcontroller = TextEditingController();
-
-  final GlobalKey<FormState> controller = GlobalKey<FormState>();
-
-  clear() {
-    image = "";
-    pathImage = "";
-    error1 = "";
-    namecontroller.clear();
-    authorcontroller.clear();
-  }
-
-  Future<void> getToken() async {
-    String? token =
-    await Firebase_MessageHelper.firebase_message.getFCMDeviceToken();
-    print("============================================");
-    print(token);
-    print("============================================");
-  }
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    clear();
-
-    getToken();
-    //FCM Notifincation
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      print("Notification arrived in foreground");
-
-      print("Notification Title : ${message.notification!.title}");
-      print("Notification Title : ${message.notification!.body}");
-
-      print("Data : ${message.data}");
-
-      await LocalNotificationHelper.localNotificationHelper
-          .sendSimpleNotication(id: 1);
-    });
-    //End of FCM Notifincation
-
-    //local notification start
-    WidgetsBinding.instance.addObserver(this);
-
-    var adroidIntialzeSettings =
-    AndroidInitializationSettings("mipmap/ic_launcher");
-    var iosIntialzeSettings = DarwinInitializationSettings();
-    var initalizeSettins = InitializationSettings(
-        android: adroidIntialzeSettings, iOS: iosIntialzeSettings);
-
-    tz.initializeTimeZones();
-
-    LocalNotificationHelper.flutterLocalNotificationsPlugin
-        .initialize(initalizeSettins,
-        onDidReceiveNotificationResponse: (NotificationResponse response) {
-          print("================");
-          print(response);
-          print("================");
-        });
-    //local notifincation end
-  }
-
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // TODO: implement didChangeAppLifecycleState
-    super.didChangeAppLifecycleState(state);
-
-    switch (state) {
-      case AppLifecycleState.inactive:
-        {
-          print("App Is Inncative");
-          break;
-        }
-      case AppLifecycleState.paused:
-        {
-          print("App Is Paused");
-          break;
-        }
-      case AppLifecycleState.resumed:
-        {
-          print("App is resumed");
-          break;
-        }
-      case AppLifecycleState.detached:
-        {
-          print("App is Terminates");
-          break;
-        }
-    }
-  }
-
+class _Add_BookState extends State<Add_Book> {
+  final ImagePicker _picker = ImagePicker();
+  File? image;
+  XFile? pickedImage;
+  String imagestring = "";
   @override
   Widget build(BuildContext context) {
-    double _height = MediaQuery.of(context).size.height;
-    double _width = MediaQuery.of(context).size.width;
-
-    Future<Uint8List> testComporessList(Uint8List list) async {
-      var result = await FlutterImageCompress.compressWithList(
-        list, minHeight: 450,
-        minWidth: 450,
-        quality: 99,
-        // rotate: 135,
-      );
-      print(list.length);
-      print(result.length);
-      return result;
-    }
-
+    double height = MediaQuery.of(context).size.height;
+    double width = MediaQuery.of(context).size.width;
     return Scaffold(
-      appBar: AppBar(title: Text("Add Book"), centerTitle: true),
-      body: StreamBuilder(
-        stream: FireStoreHelper.fireStoreHelper.fecthchCount(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text("Error : ${snapshot.error}"));
-          } else if (snapshot.hasData) {
-            QuerySnapshot? querySnapshort = snapshot.data as QuerySnapshot<Object?>?;
-            List<QueryDocumentSnapshot> allDocs = querySnapshort!.docs;
-            int count = allDocs[0]['count'];
-            count = ++count;
-            return SingleChildScrollView(
+      resizeToAvoidBottomInset: true,
+      appBar: AppBar(
+        title: const Text("Add Book"),
+        backgroundColor: Colors.black,
+        centerTitle: true,
+      ),
+      backgroundColor: Colors.grey,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Form(
+              key: Global.insertdatakey,
               child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Form(
-                  key: controller,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text("ID : $count"),
-                      SizedBox(height: 30),
-                      Stack(
-                        alignment: Alignment(1.3, 1.1),
-                        children: [
-                          Container(
-                              height: _height * 0.301,
-                              width: _width * 0.5,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                  color: ([...Colors.primaries]..shuffle())
-                                      .first
-                                      .shade200,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                      color: Colors.black, width: 5)),
-                              child: (imagefile2 != null)
-                                  ? ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Image.file(
-                                  imagefile2!,
-                                  height: _height * 0.9,
-                                  width: _width * 0.48,
-                                  fit: BoxFit.fill,
-                                ),
-                              )
-                                  : Text(
-                                "Enter You Book Image and 300*400",
-                                style: TextStyle(fontSize: 18),
-                                textAlign: TextAlign.center,
-                              )),
-                          FloatingActionButton(
-                            onPressed: () async {
-                              print(_height * 0.301);
-                              print(_width * 0.5);
-                              showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: SelectableText(
-                                        "You Choise Is Image"),
-                                    actions: [
-                                      IconButton(
-                                          onPressed: () async {
-                                            try {
-                                              var pickedFile =
-                                              await picker.pickImage(
-                                                  source: ImageSource
-                                                      .camera);
-
-                                              //you can use ImageCourse.camera for Camera capture
-                                              if (pickedFile != null) {
-                                                pathImage = pickedFile.path;
-
-                                                setState(() {
-                                                  error1 = "";
-                                                  imagefile2 =
-                                                      File(pathImage);
-                                                }); //convert Path to File
-                                                Uint8List imagebytes =
-                                                await imagefile2!
-                                                    .readAsBytes();
-
-                                                imagebytes =
-                                                await testComporessList(
-                                                    imagebytes);
-
-                                                setState(() {
-                                                  image = base64
-                                                      .encode(imagebytes);
-                                                });
-                                              } else {
-                                                print(
-                                                    "No image is selected.");
-                                              }
-                                            } catch (e) {
-                                              print(
-                                                  "error while picking file.");
-                                            }
-                                            setState(() {
-                                              Navigator.of(context).pop();
-                                            });
-                                          },
-                                          icon: Icon(Icons.camera)),
-                                      SizedBox(width: 40),
-                                      IconButton(
-                                          onPressed: () async {
-                                            try {
-                                              var pickedFile =
-                                              await picker.pickImage(
-                                                  source: ImageSource
-                                                      .gallery);
-
-                                              if (pickedFile != null) {
-                                                pathImage = pickedFile.path;
-                                                setState(() {
-                                                  error1 = "";
-                                                  imagefile2 =
-                                                      File(pathImage);
-                                                });
-                                                Uint8List imagebytes =
-                                                await imagefile2!
-                                                    .readAsBytes();
-                                                imagebytes =
-                                                await testComporessList(
-                                                    imagebytes);
-                                                setState(() {
-                                                  image = base64
-                                                      .encode(imagebytes);
-                                                });
-                                              } else {
-                                                print(
-                                                    "No image is selected.");
-                                              }
-                                            } catch (e) {
-                                              print(
-                                                  "error while picking file.");
-                                            }
-                                            setState(() {
-                                              Navigator.of(context).pop();
-                                            });
-                                          },
-                                          icon: Icon(Icons.album))
-                                    ],
-                                  ));
-                            },
-                            child: Icon(Icons.add),
-                            mini: true,
-                          )
-                        ],
+                padding: EdgeInsets.all(15),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      children: [
+                        Container(
+                          height: height * 0.42,
+                          width: width * 0.7,
+                          decoration: BoxDecoration(
+                            color: Colors.teal.withOpacity(0.4),
+                            borderRadius: BorderRadius.circular(100),
+                            image: DecorationImage(
+                              image: (image != null)
+                                  ? FileImage(image!)
+                                  : NetworkImage(
+                                  "https://media.istockphoto.com/id/1306307586/photo/collection-of-old-books-in-library.jpg?b=1&s=170667a&w=0&k=20&c=qEyK-d-aFOds4EcAYWoBIKnO5ELCiSb1PZpW_WU8RZ4=")
+                              as ImageProvider,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                        ),
+                        // Positioned(
+                        //   left: 200,
+                        //   top: 270,
+                        //   child: FloatingActionButton(
+                        //     backgroundColor: Colors.white,
+                        //     mini: true,
+                        //     onPressed: showDailog,
+                        //     child: const Icon(
+                        //       Icons.add,
+                        //       size: 20,
+                        //       color: Colors.black,
+                        //     ),
+                        //   ),
+                        // ),
+                      ],
+                    ),
+                    const SizedBox(height: 50),
+                    TextFormField(
+                      controller: Global.Authornamecontroller,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: "Enter Author name",
+                        label: Text("Name"),
                       ),
-                      Text(
-                        error1,
-                        style: TextStyle(fontSize: 20, color: Colors.red),
+                      validator: (val) {
+                        if (val!.isEmpty) {
+                          return "Enter Author name";
+                        }
+                      },
+                      onSaved: (val) {
+                        setState(() {
+                          Global.Authorname = val!;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: Global.booknamecontroller,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: "Enter Book name",
+                        label: Text("Book"),
                       ),
-                      SizedBox(height: 50),
-                      Text("Book Name",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 20)),
-                      SizedBox(height: 5),
-                      TextFormField(
-                          controller: namecontroller,
-                          validator: (val) {
-                            if (val!.isEmpty) {
-                              return "Enter Book Name";
-                            }
-                            return null;
-                          },
-                          decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                              hintText: "Enter Book Name")),
-                      SizedBox(height: 50),
-                      Text("Author Name",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 20)),
-                      SizedBox(height: 5),
-                      TextFormField(
-                          controller: authorcontroller,
-                          validator: (val) {
-                            if (val!.isEmpty) {
-                              return "Enter Author Name";
-                            }
-                            return null;
-                          },
-                          decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                              hintText: "Enter Author Name")),
-                      SizedBox(height: 50),
-                      ElevatedButton(
-                          onPressed: () async {
-                            if (controller.currentState!.validate()) {
-                              if (imagefile2 != null) {
-                                Map<String, dynamic> data = {
-                                  "id": count,
-                                  "image": image,
-                                  "book_name": namecontroller.text,
-                                  "author_name": authorcontroller.text,
-                                  "favorite": false
-                                };
-                                Map<String, dynamic> data2 = {
-                                  "count": count,
-                                };
+                      validator: (val) {
+                        if (val!.isEmpty) {
+                          return "Enter Book Name";
+                        }
+                      },
+                      onSaved: (val) {
+                        setState(() {
+                          Global.Bookname = val!;
+                        });
+                      },
+                    ),
+                    SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (Global.insertdatakey.currentState!.validate()) {
+                          Global.insertdatakey.currentState!.save();
 
-                                FireStoreHelper.fireStoreHelper.insertData(
-                                    name: "books_detail", data: data);
-                                FireStoreHelper.fireStoreHelper.UpdateCount(
-                                    data: data2, name: "book_count");
+                          Map<String, dynamic> data = {
+                            "authorname": Global.Authornamecontroller.text,
+                            "bookname": Global.booknamecontroller.text,
+                            // "image": imagestring
+                          };
+                          DocumentReference docref = await FireStoreHelpers
+                              .fireStoreHelpers
+                              .insertdata(data: data);
 
-                                await LocalNotificationHelper
-                                    .localNotificationHelper
-                                    .sendScheduleNotifincation(id: count);
-
-                                Navigator.of(context).pop();
-                              } else {
-                                setState(() {
-                                  error1 = "Enter You Book Image";
-                                });
-                              }
-                            }
-                          },
-                          child: Text("Save"))
-                    ],
-                  ),
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                              "HomePage", (route) => false);
+                        }
+                      },
+                      child: const Text("Add Book"),
+                      style: ElevatedButton.styleFrom(primary: Colors.black),
+                    ),
+                  ],
                 ),
               ),
-            );
-          }
-          return Center(child: CircularProgressIndicator());
-        },
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  showDailog() {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            content: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  onPressed: () async {
+                    try {
+                      var pickedFile =
+                      await _picker.pickImage(source: ImageSource.camera);
+
+                      if (pickedFile != null) {
+                        String imagepath = pickedFile.path;
+                        print(imagepath);
+                        setState(() {
+                          image = pickedFile.path as File?;
+                        });
+                        File imagefile = File(imagepath);
+                        Uint8List imagebytes = await imagefile.readAsBytes();
+                        imagestring = base64.encode(imagebytes);
+                        setState(() {});
+                      } else {
+                        print("No image is selected.");
+                      }
+                    } catch (e) {
+                      print("error while picking file.");
+                    }
+
+                    // pickedImage =
+                    //     await _picker.pickImage(source: ImageSource.camera);
+                    //
+                    // setState(() {
+                    //   image = File(pickedImage!.path);
+                    // });
+
+                    Navigator.of(context).pop();
+                  },
+                  icon: Icon(Icons.camera),
+                ),
+                IconButton(
+                    onPressed: () async {
+                      try {
+                        var pickedFile = await _picker.pickImage(
+                            source: ImageSource.gallery);
+                        //you can use ImageCourse.camera for Camera capture
+                        if (pickedFile != null) {
+                          String imagepath = pickedFile.path;
+
+                          File imagefile =
+                          File(imagepath); //convert Path to File
+                          Uint8List imagebytes =
+                          await imagefile.readAsBytes(); //convert to bytes
+                          imagestring = base64.encode(
+                              imagebytes); //convert bytes to base64 string
+
+                          setState(() {});
+                        } else {
+                          print("No image is selected.");
+                        }
+                      } catch (e) {
+                        print("error while picking file.");
+                      }
+
+                      // pickedImage =
+                      //     await _picker.pickImage(source: ImageSource.gallery);
+                      //
+                      // setState(() {
+                      //   image = File(pickedImage!.path);
+                      // });
+
+                      Navigator.of(context).pop();
+                    },
+                    icon: Icon(Icons.browse_gallery)),
+              ],
+            ),
+          );
+        });
   }
 }

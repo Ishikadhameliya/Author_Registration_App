@@ -1,41 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class FireStoreHelper {
-  FireStoreHelper._();
-  static FireStoreHelper fireStoreHelper = FireStoreHelper._();
+class FireStoreHelpers {
+  FireStoreHelpers._();
 
-  FirebaseFirestore firestore = FirebaseFirestore.instance;
+  static final FireStoreHelpers fireStoreHelpers = FireStoreHelpers._();
 
-  Future<void> insertData(
-      {required String name, required Map<String, dynamic> data}) async {
-    await firestore.collection("$name").doc("${data['id']}").set(data);
+  static FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
+
+  Future<DocumentReference<Map<String, dynamic>>> insertdata(
+      {required Map<String, dynamic> data}) async {
+    DocumentReference<Map<String, dynamic>> docRef =
+    await firebaseFirestore.collection("book").add(data);
+    return docRef;
   }
 
-  Stream<QuerySnapshot> fecthchAllData({required String name}) {
-    return firestore.collection(name).snapshots();
+  Stream<QuerySnapshot> featchalldata() {
+    return firebaseFirestore.collection("book").snapshots();
   }
 
-  Future<void> UpdateRecode(
-      {required String id,
-        required Map<String, dynamic> data,
-        required String name}) async {
-    await firestore.collection(name).doc(id).update(data);
+  Future<void> deletedata({required String id}) async {
+    await firebaseFirestore.collection("book").doc(id).delete();
   }
 
-  Future<void> DeleteRecode(
-      {required String id,
-        required Map<String, dynamic> data,
-        required String name}) async {
-    await firestore.collection(name).doc(id).delete();
-  }
-
-  //couter
-  Stream<QuerySnapshot> fecthchCount() {
-    return firestore.collection("counter").snapshots();
-  }
-
-  Future<void> UpdateCount(
-      {required Map<String, dynamic> data, required String name}) async {
-    await firestore.collection("counter").doc(name).update(data);
+  Future<void> updatedata(
+      {required Map<String, dynamic> data, required String id}) async {
+    await firebaseFirestore.collection("book").doc(id).update(data);
   }
 }
